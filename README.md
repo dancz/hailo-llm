@@ -42,3 +42,35 @@ Chat:
 ```bash
 curl http://localhost:11434/api/chat -d '{"model": "qwen2.5", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
+
+## Multi-User & Context Switching
+
+The server is designed to be **stateless**. This means the Hailo memory is cleared between every request to support multiple concurrent users. 
+
+**Application Logic:**
+Your application must maintain the conversation history (context) for each user and send the **full history** with every new request. The server will re-ingest (prefill) this context before generating the new response.
+
+### Example: Chat Session for User A
+**Turn 1:**
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen",
+  "messages": [
+    {"role": "user", "content": "My name is Alice."}
+  ]
+}'
+```
+
+**Turn 2 (Crucial: Send History Again):**
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen",
+  "messages": [
+    {"role": "user", "content": "My name is Alice."},
+    {"role": "assistant", "content": "Hello Alice! How can I help?"},
+    {"role": "user", "content": "What is my name?"}
+  ]
+}'
+```
+
+The server will isolate this request from any other "User B" requests happening simultaneously. The specific prefill latency depends on the length of the history (approx. 0.4s for short, up to 2s for 2000 chars).

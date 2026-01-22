@@ -16,13 +16,12 @@ async def generate(request: GenerateRequest):
     runner = get_runner()
     
     if request.model != runner.get_model_name() and request.model != "mock":
-         # In a real app we might switch models here
          pass
 
     if request.stream:
-        def stream_generator():
+        async def stream_generator():
             full_response = ""
-            for token in runner.generate(request.prompt):
+            async for token in runner.generate_token_stream(request.prompt):
                 full_response += token
                 resp = GenerateResponse(
                     model=request.model,
@@ -30,7 +29,7 @@ async def generate(request: GenerateRequest):
                     response=token,
                     done=False
                 )
-                yield json.dumps(resp.model_dump()) + "\n"
+                yield json.dumps(resp.dict()) + "\n"
             
             # Final message
             resp = GenerateResponse(
@@ -39,12 +38,12 @@ async def generate(request: GenerateRequest):
                 response="",
                 done=True
             )
-            yield json.dumps(resp.model_dump()) + "\n"
+            yield json.dumps(resp.dict()) + "\n"
             
         return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
     else:
         full_response = ""
-        for token in runner.generate(request.prompt):
+        async for token in runner.generate_token_stream(request.prompt):
             full_response += token
         
         return GenerateResponse(
@@ -58,23 +57,24 @@ async def generate(request: GenerateRequest):
 async def chat(request: ChatRequest):
     runner = get_runner()
     
-    # Construct prompt from messages (simple concatenation for now, 
-    # real impl would use a chat template)
+    # Construct prompt from messages
+    # IMPORTANT: Since context is stateless, we must ensure we pass ALL history here.
+    # The client is responsible for sending full history.
     prompt = ""
     for msg in request.messages:
         prompt += f"{msg.role}: {msg.content}\n"
     prompt += "assistant: "
 
     if request.stream:
-        def stream_generator():
-            for token in runner.generate(prompt):
+        async def stream_generator():
+            async for token in runner.generate_token_stream(prompt):
                 resp = ChatResponse(
                     model=request.model,
                     created_at=get_utc_now(),
                     message=ChatMessage(role="assistant", content=token),
                     done=False
                 )
-                yield json.dumps(resp.model_dump()) + "\n"
+                yield json.dumps(resp.dict()) + "\n"
             
             resp = ChatResponse(
                 model=request.model,
@@ -87,7 +87,7 @@ async def chat(request: ChatRequest):
         return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
     else:
         full_response = ""
-        for token in runner.generate(prompt):
+        async for token in runner.generate_token_stream(prompt):
             full_response += token
             
         return ChatResponse(

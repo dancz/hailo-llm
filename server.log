@@ -1,0 +1,30 @@
+INFO:     Will watch for changes in these directories: ['/home/pi/src/hailoLlm']
+INFO:     Uvicorn running on http://0.0.0.0:11434 (Press CTRL+C to quit)
+INFO:     Started reloader process [467620] using StatReload
+INFO:     Started server process [467622]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Loading Hailo model from models...
+Creating VDevice...
+Initializing LLM from models/Qwen2.5-1.5B-Instruct.hef...
+Hailo LLM loaded successfully.
+INFO:     127.0.0.1:47742 - "POST /api/generate HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'tests/test_prefill.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [467622]
+INFO:     Started server process [467999]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Loading Hailo model from models...
+Creating VDevice...
+Initializing LLM from models/Qwen2.5-1.5B-Instruct.hef...
+Hailo LLM loaded successfully.
+INFO:     127.0.0.1:45860 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45306 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49012 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34254 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35804 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36012 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55694 - "POST /api/generate HTTP/1.1" 200 OK
