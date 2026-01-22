@@ -82,7 +82,7 @@ async def chat(request: ChatRequest):
                 message=ChatMessage(role="assistant", content=""),
                 done=True
             )
-            yield json.dumps(resp.model_dump()) + "\n"
+            yield json.dumps(resp.dict()) + "\n"
 
         return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
     else:
