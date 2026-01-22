@@ -73,4 +73,14 @@ curl http://localhost:11434/api/chat -d '{
 }'
 ```
 
-The server will isolate this request from any other "User B" requests happening simultaneously. The specific prefill latency depends on the length of the history (approx. 0.4s for short, up to 2s for 2000 chars).
+The server will isolate this request from any other concurrect request.
+
+**Smart Caching Optimization (New):**
+While you must send the full history, the server implements **Prefix Caching**.
+1.  **First Turn**: The server processes the text (Prefill).
+2.  **Follow-up Turns**: If the new request extends a previous conversation, the server **skips re-processing** the old history and instantly loads the cached state.
+3.  **Performance**:
+    *   **Cache Hit**: ~0.0s prefill latency (Instant start).
+    *   **Cache Miss**: ~2.0s prefill (for 2k chars).
+    *   This provides a smooth, "stateful-like" experience for users while keeping your app logic simple and stateless.
+

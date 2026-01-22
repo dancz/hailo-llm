@@ -1,30 +1,102 @@
 INFO:     Will watch for changes in these directories: ['/home/pi/src/hailoLlm']
 INFO:     Uvicorn running on http://0.0.0.0:11434 (Press CTRL+C to quit)
-INFO:     Started reloader process [467620] using StatReload
-INFO:     Started server process [467622]
+INFO:     Started reloader process [503350] using StatReload
+INFO:     Started server process [503352]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-Loading Hailo model from models...
-Creating VDevice...
-Initializing LLM from models/Qwen2.5-1.5B-Instruct.hef...
-Hailo LLM loaded successfully.
-INFO:     127.0.0.1:47742 - "POST /api/generate HTTP/1.1" 200 OK
-WARNING:  StatReload detected changes in 'tests/test_prefill.py'. Reloading...
+WARNING:  StatReload detected changes in 'app/engine/context_manager.py'. Reloading...
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [467622]
-INFO:     Started server process [467999]
+INFO:     Finished server process [503352]
+INFO:     Started server process [506863]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-Loading Hailo model from models...
-Creating VDevice...
-Initializing LLM from models/Qwen2.5-1.5B-Instruct.hef...
-Hailo LLM loaded successfully.
-INFO:     127.0.0.1:45860 - "POST /api/generate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45306 - "POST /api/generate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49012 - "POST /api/generate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34254 - "POST /api/generate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35804 - "POST /api/generate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36012 - "POST /api/generate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55694 - "POST /api/generate HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'app/engine/hailo_runner.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [506863]
+INFO:     Started server process [507018]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/engine/context_manager.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [507018]
+INFO:     Started server process [507099]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/engine/hailo_runner.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [507099]
+INFO:     Started server process [507221]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'tests/test_prefix_caching.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [507221]
+INFO:     Started server process [507326]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'tests/test_multi_user_caching.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [507326]
+INFO:     Started server process [507632]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'tests/test_concurrent_chat_slow.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [507632]
+INFO:     Started server process [512774]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'tests/test_stress_limit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [512774]
+INFO:     Started server process [515897]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/engine/context_manager.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [515897]
+INFO:     Started server process [516633]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/engine/hailo_runner.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [516633]
+INFO:     Started server process [516658]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/engine/hailo_runner.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [516658]
+INFO:     Started server process [516667]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'tests/test_stress_limit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [516667]
+INFO:     Started server process [516730]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

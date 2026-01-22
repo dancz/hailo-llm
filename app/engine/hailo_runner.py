@@ -2,6 +2,7 @@ import os
 import time
 from typing import Generator
 from app.engine.base import BaseRunner
+from app.engine.context_manager import ContextManager
 
 try:
     import hailo_platform
@@ -22,6 +23,9 @@ class HailoRunner(BaseRunner):
         self.vdevice = None
         self.llm = None
         self.lock = asyncio.Lock()
+        self.context_manager = ContextManager(max_cache_size_mb=400) # Reserve 400MB for context cache
+        self.cache_hits = 0
+        self.cache_misses = 0
         
     def load_model(self, model_path: str):
         if not HAILO_AVAILABLE:
@@ -42,39 +46,60 @@ class HailoRunner(BaseRunner):
         print("Hailo LLM loaded successfully.")
 
     async def generate_token_stream(self, prompt: str, max_new_tokens: int = 128, temperature: float = 0.7):
-        # We define an async generator for the lock scope
         async with self.lock:
-             # Ensure stateless behavior: Clear context from previous user
-             # We rely on the fact that 'LLM' class likely has such method, or we use .generate_all if it clears automatically?
-             # Based on C++ code, llm.clear_context() was available.
-             # inspect_llm showed 'load_context', 'save_context', 'max_context_capacity', 'get_context_usage_size'.
-             # It did NOT explicitly show 'clear_context' in the snippet I saw? 
-             # Wait, Inspect LLM output from Step 345:
-             # "Use ``clear_context()`` to reset the conversation history." -> Yes it exists in docstring!
-             try:
-                 self.llm.clear_context()
-             except AttributeError:
-                 # Fallback if method is named differently or missing?
-                 print("Warning: clear_context method not found, context mixing might occur.")
-
-             # Run generation in a threadpool if it blocks?
-             # The raw.LLM.generate method returns an iterator. Iterating it is blocking C++ call typically.
-             # If we block here, we block the asyncio loop.
-             # Ideally validation shows if generate() yields quickly.
+             # Prefix Caching Logic
+             longest_match_text = self.context_manager.find_longest_prefix(prompt)
              
+             loaded_from_cache = False
+             if longest_match_text:
+                 # print(f"DEBUG: Cache Hit! Prefix len: {len(longest_match_text)}")
+                 blob = self.context_manager.get_context(longest_match_text)
+                 if blob:
+                     try:
+                         # 1. Clear before load is safer to avoid accumulation errors
+                         self.llm.clear_context()
+                         self.llm.load_context(blob)
+                         loaded_from_cache = True
+                         self.cache_hits += 1
+                         
+                         # Identify the *new* part of the prompt
+                         prompt_to_process = prompt[len(longest_match_text):]
+                     except Exception as e:
+                         print(f"Warning: Failed to load context: {e}")
+                         self.llm.clear_context()
+                         prompt_to_process = prompt
+                 else:
+                     prompt_to_process = prompt
+             else:
+                 prompt_to_process = prompt
+                 self.llm.clear_context() # Stateless fallback
+                 self.cache_misses += 1
+                 
+             # Generate
+             full_generated_text = ""
              try:
-                # Assuming prompt is sufficient context for this stateless request
-                # We do NOT use 'with self.llm.generate(...) as gen' directly because it's not async context manager.
-                # But we validly use it inside the async lock.
-                # However, the iteration itself `for token in gen` is synchronous. 
-                # This will block other coroutines (like heartbeats) but the Lock ensures no other inference runs.
+                # If loaded from cache and prompt_to_process is empty, we might just be continuing?
+                # But typically prompt_to_process has at least the new user message.
                 
-                with self.llm.generate(prompt, max_generated_tokens=max_new_tokens, temperature=temperature) as gen:
+                with self.llm.generate(prompt_to_process, max_generated_tokens=max_new_tokens, temperature=temperature) as gen:
                     for token in gen:
-                        # Give usage info back to loop occasionally?
-                        # await asyncio.sleep(0) 
+                        full_generated_text += token
                         yield token
-                        await asyncio.sleep(0) # Yield control to event loop to allow other tasks (like accept connection) to progress
+                        await asyncio.sleep(0)
+                        
+                # Cache the result for next time!
+                # The new state represents: prompt + full_generated_text
+                # If we loaded from cache, 'prompt' was (prefix + new_part).
+                # So the full sequence is (prompt + full_generated_text).
+                new_full_history = prompt + full_generated_text
+                
+                # Retrieve the blob *now*
+                try:
+                    new_blob = self.llm.save_context()
+                    self.context_manager.cache_context(new_full_history, new_blob)
+                except Exception as e:
+                    print(f"Warning: Failed to save context: {e}")
+                
              except Exception as e:
                 print(f"Generation error: {e}")
                 yield f" [Error: {e}]"
