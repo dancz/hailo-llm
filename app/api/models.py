@@ -5,12 +5,14 @@ class GenerateRequest(BaseModel):
     model: str
     prompt: str
     stream: bool = True
+    context: Optional[List[int]] = None
     options: Optional[dict] = None
 
 class GenerateResponse(BaseModel):
     model: str
     created_at: str
     response: str
+    context: Optional[List[int]] = None
     done: bool
 
 class ChatMessage(BaseModel):

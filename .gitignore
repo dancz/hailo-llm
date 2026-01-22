@@ -24,3 +24,7 @@ hailort.log
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Validations
+cache/
+test_cache_contexts/
