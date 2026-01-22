@@ -115,3 +115,26 @@ async def chat(request: ChatRequest):
             message=ChatMessage(role="assistant", content=full_response),
             done=True
         )
+
+@router.post("/cache/clear")
+async def clear_cache():
+    runner = get_runner()
+    if hasattr(runner, "context_manager"):
+        runner.context_manager.clear()
+        runner.cache_hits = 0
+        runner.cache_misses = 0
+        return {"status": "success", "message": "Context cache cleared"}
+    else:
+        return {"status": "error", "message": "Runner does not support caching"}
+
+@router.get("/cache/stats")
+async def get_cache_stats():
+    runner = get_runner()
+    if hasattr(runner, "context_manager"):
+        stats = runner.context_manager.get_stats()
+        # Add runner-level stats
+        stats["runner_hits"] = getattr(runner, "cache_hits", 0)
+        stats["runner_misses"] = getattr(runner, "cache_misses", 0)
+        return stats
+    else:
+        return {"status": "error", "message": "No cache stats available"}

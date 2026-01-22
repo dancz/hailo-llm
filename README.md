@@ -31,16 +31,62 @@ Once files are uploaded, edit `start_server.sh` and uncomment:
 export USE_HAILO_RUNNER=1
 ```
 
-## API Usage
+## API Reference
 
-Generate text:
+### 1. Generate Text (Universal)
+`POST /api/generate`
+
+Supports both stateless (Ollama-style) and stateful (Context ID) modes.
+
+**Parameters:**
+- `model`: "qwen2.5" (Required)
+- `prompt`: Text string (Required)
+- `stream`: `true`/`false` (Default: `false`)
+- `context`: `[int]` (Optional - for Stateful mode)
+
+**Example (Stateless):**
 ```bash
-curl http://localhost:11434/api/generate -d '{"model": "qwen2.5", "prompt": "Why is the sky blue?"}'
+curl http://localhost:11434/api/generate -d '{
+  "model": "qwen2.5",
+  "prompt": "Why is the sky blue?"
+}'
 ```
 
-Chat:
+**Example (Stateful):**
+See "Stateful Mode" section above.
+
+### 2. Chat (Stateless)
+`POST /api/chat`
+
+Standard Ollama-compatible chat endpoint. Context is managed by the client sending the full history.
+
+**Parameters:**
+- `model`: "qwen2.5" (Required)
+- `messages`: List of `{"role": "user/assistant", "content": "..."}`
+
+**Example:**
 ```bash
-curl http://localhost:11434/api/chat -d '{"model": "qwen2.5", "messages": [{"role": "user", "content": "Hello"}]}'
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen2.5",
+  "messages": [
+    {"role": "user", "content": "Hello"},
+    {"role": "assistant", "content": "Hi there!"},
+    {"role": "user", "content": "How are you?"}
+  ]
+}'
+```
+
+### 3. Cache Management (System)
+
+**Get Statistics:**
+`GET /api/cache/stats`
+Returns usage details of the RAM and Disk tier caches.
+
+**Clear Cache:**
+`POST /api/cache/clear`
+Wipes all context data from both RAM and Disk.
+```bash
+curl -X POST http://localhost:11434/api/cache/clear
 ```
 
 ## Multi-User & Context Switching
@@ -115,4 +161,46 @@ curl http://localhost:11434/api/generate -d '{
 # Response confirms memory ("Bob") and returns NEW context ID.
 ```
 
+
 The server caches the session state internally. This is more efficient for bandwidth but requires your client to track the latest `context` ID.
+
+## Context Management (Tiered Architecture)
+
+The system uses a robust **Two-Tier Caching System** to support many concurrent users without losing state.
+
+### Tier 1: RAM Cache (Fast)
+- **Size**: 400MB (approx. 10 active users).
+- **Behavior**: Stores the most recently used contexts for instant access.
+- **Eviction**: When full, contexts are **moved to Disk** (Tier 2).
+
+### Tier 2: Disk Cache (Persistent)
+- **Size**: 10GB (Default). Configurable via `MAX_DISK_CACHE_GB` environment variable.
+- **Behavior**: Stores less active contexts on the SD card.
+- **Restoration**: Contexts are automatically loaded back to RAM when needed (~0.5s latency).
+- **Cleanup**: When Disk limit is reached, the **oldest files are permanently deleted**.
+
+### Manual Cleanup
+If you wish to force-clear **all** cached contexts (RAM + Disk):
+
+```bash
+curl -X POST http://localhost:11434/api/cache/clear
+```
+
+### Monitoring
+To check the current usage of both RAM and Disk tiers:
+
+```bash
+curl http://localhost:11434/api/cache/stats
+```
+
+**Response Example:**
+```json
+{
+  "ram_entries": 9,
+  "ram_size_mb": 350.5,
+  "disk_entries": 15,
+  "disk_size_mb": 520.2,
+  "evictions_to_disk": 42,
+  "disk_restores": 5
+}
+```

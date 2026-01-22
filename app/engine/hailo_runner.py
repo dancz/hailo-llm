@@ -23,7 +23,14 @@ class HailoRunner(BaseRunner):
         self.vdevice = None
         self.llm = None
         self.lock = asyncio.Lock()
-        self.context_manager = ContextManager(max_cache_size_mb=400) # Reserve 400MB for context cache
+        
+        # Configuration
+        max_disk_gb = int(os.environ.get("MAX_DISK_CACHE_GB", "10"))
+        
+        self.context_manager = ContextManager(
+            max_cache_size_mb=400,
+            max_disk_size_gb=max_disk_gb
+        ) 
         self.cache_hits = 0
         self.cache_misses = 0
         
