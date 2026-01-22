@@ -84,3 +84,35 @@ While you must send the full history, the server implements **Prefix Caching**.
     *   **Cache Miss**: ~2.0s prefill (for 2k chars).
     *   This provides a smooth, "stateful-like" experience for users while keeping your app logic simple and stateless.
 
+
+## Stateful Mode (Advanced)
+
+For applications that wish to offload history management to the server (Ollama-style), use the `/api/generate` endpoint with the `context` parameter.
+
+**Turn 1:**
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "qwen2.5", 
+  "prompt": "My name is Bob"
+}'
+# Response:
+# {
+#   "model": "qwen2.5",
+#   "created_at": "2026-01-22T22:00:00.000Z",
+#   "response": "Hello! Nice to meet you, Bob.",
+#   "done": true,
+#   "context": [1737123456789]
+# }
+```
+
+**Turn 2 (Send Context ID only):**
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "qwen2.5", 
+  "prompt": "What is my name?",
+  "context": [12345678]
+}'
+# Response confirms memory ("Bob") and returns NEW context ID.
+```
+
+The server caches the session state internally. This is more efficient for bandwidth but requires your client to track the latest `context` ID.
