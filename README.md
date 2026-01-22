@@ -42,3 +42,45 @@ Chat:
 ```bash
 curl http://localhost:11434/api/chat -d '{"model": "qwen2.5", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
+
+## Multi-User & Context Switching
+
+The server is designed to be **stateless**. This means the Hailo memory is cleared between every request to support multiple concurrent users. 
+
+**Application Logic:**
+Your application must maintain the conversation history (context) for each user and send the **full history** with every new request. The server will re-ingest (prefill) this context before generating the new response.
+
+### Example: Chat Session for User A
+**Turn 1:**
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen",
+  "messages": [
+    {"role": "user", "content": "My name is Alice."}
+  ]
+}'
+```
+
+**Turn 2 (Crucial: Send History Again):**
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen",
+  "messages": [
+    {"role": "user", "content": "My name is Alice."},
+    {"role": "assistant", "content": "Hello Alice! How can I help?"},
+    {"role": "user", "content": "What is my name?"}
+  ]
+}'
+```
+
+The server will isolate this request from any other concurrect request.
+
+**Smart Caching Optimization (New):**
+While you must send the full history, the server implements **Prefix Caching**.
+1.  **First Turn**: The server processes the text (Prefill).
+2.  **Follow-up Turns**: If the new request extends a previous conversation, the server **skips re-processing** the old history and instantly loads the cached state.
+3.  **Performance**:
+    *   **Cache Hit**: ~0.0s prefill latency (Instant start).
+    *   **Cache Miss**: ~2.0s prefill (for 2k chars).
+    *   This provides a smooth, "stateful-like" experience for users while keeping your app logic simple and stateless.
+
