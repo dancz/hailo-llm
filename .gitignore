@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd //
+.Python
+env/
+venv/
+.env
+.venv
+
+# Hailo Project Specific
+models/
+hailort.log
+*.hef
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
