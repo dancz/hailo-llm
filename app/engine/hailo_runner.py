@@ -45,36 +45,65 @@ class HailoRunner(BaseRunner):
         
         print("Hailo LLM loaded successfully.")
 
-    async def generate_token_stream(self, prompt: str, max_new_tokens: int = 128, temperature: float = 0.7):
+    async def generate_token_stream(self, prompt: str, max_new_tokens: int = 128, temperature: float = 0.7, context_id: int = None):
         async with self.lock:
-             # Prefix Caching Logic
-             longest_match_text = self.context_manager.find_longest_prefix(prompt)
-             
-             loaded_from_cache = False
-             if longest_match_text:
-                 # print(f"DEBUG: Cache Hit! Prefix len: {len(longest_match_text)}")
-                 blob = self.context_manager.get_context(longest_match_text)
+             prompt_to_process = prompt
+             # Stateful / Context ID Logic
+             if context_id is not None:
+                 # Client provided a specific context ID. Try to load it.
+                 # We use the string representation of ID as the key in ContextManager
+                 key = f"ctx:{context_id}" 
+                 blob = self.context_manager.get_context(key)
                  if blob:
                      try:
-                         # 1. Clear before load is safer to avoid accumulation errors
                          self.llm.clear_context()
                          self.llm.load_context(blob)
-                         loaded_from_cache = True
                          self.cache_hits += 1
-                         
-                         # Identify the *new* part of the prompt
-                         prompt_to_process = prompt[len(longest_match_text):]
+                         # With explicit context ID, we assume the prompt is just the *continuation*
+                         # So we process the whole 'prompt' string as new tokens.
+                         prompt_to_process = prompt 
                      except Exception as e:
-                         print(f"Warning: Failed to load context: {e}")
-                         self.llm.clear_context()
+                         print(f"Warning: Failed to load context {context_id}: {e}")
+                         # If explicitly requested context fails, we arguably should fail request?
+                         # Or fallback? Fallback means loss of memory.
+                         # User said "not be needed to send whole history". So fallback is USELESS.
+                         # We should probably raise, but yield error text is safer for stream.
+                         pass
+                 else:
+                     # ID not found (evicted or invalid)
+                     self.cache_misses += 1
+                     yield f" [Error: Context ID {context_id} not found/evicted]"
+                     return
+
+             elif self.context_manager:
+                 # Fallback to Prefix Caching (Stateless Chat Mode)
+                 longest_match_text = self.context_manager.find_longest_prefix(prompt)
+                 
+                 loaded_from_cache = False
+                 if longest_match_text:
+                     # print(f"DEBUG: Cache Hit! Prefix len: {len(longest_match_text)}")
+                     blob = self.context_manager.get_context(longest_match_text)
+                     if blob:
+                         try:
+                             # 1. Clear before load is safer to avoid accumulation errors
+                             self.llm.clear_context()
+                             self.llm.load_context(blob)
+                             loaded_from_cache = True
+                             self.cache_hits += 1
+                             
+                             # Identify the *new* part of the prompt
+                             prompt_to_process = prompt[len(longest_match_text):]
+                         except Exception as e:
+                             print(f"Warning: Failed to load context: {e}")
+                             self.llm.clear_context()
+                             prompt_to_process = prompt
+                     else:
                          prompt_to_process = prompt
                  else:
                      prompt_to_process = prompt
-             else:
-                 prompt_to_process = prompt
-                 self.llm.clear_context() # Stateless fallback
-                 self.cache_misses += 1
-                 
+                     self.llm.clear_context() # Stateless fallback
+                     self.cache_misses += 1
+                                  
              # Generate
              full_generated_text = ""
              try:
@@ -88,15 +117,23 @@ class HailoRunner(BaseRunner):
                         await asyncio.sleep(0)
                         
                 # Cache the result for next time!
-                # The new state represents: prompt + full_generated_text
-                # If we loaded from cache, 'prompt' was (prefix + new_part).
-                # So the full sequence is (prompt + full_generated_text).
                 new_full_history = prompt + full_generated_text
                 
                 # Retrieve the blob *now*
                 try:
                     new_blob = self.llm.save_context()
+                    # 1. Save for Prefix Caching (Stateless)
                     self.context_manager.cache_context(new_full_history, new_blob)
+                    
+                    # 2. Save for Stateful Context ID (Stateful)
+                    # Use a simple integer hash/ID. Using timestamp for uniqueness.
+                    import time
+                    new_context_id = int(time.time() * 1000)
+                    self.context_manager.cache_context(f"ctx:{new_context_id}", new_blob)
+                    
+                    # Yield the ID to the caller so they can return it to client
+                    yield new_context_id
+                    
                 except Exception as e:
                     print(f"Warning: Failed to save context: {e}")
                 
